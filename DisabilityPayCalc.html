@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Disability Pay Calculator</title>
+  <style>
+    body {
+      font-family: Verdana, sans-serif;
+      margin: 40px auto;
+      max-width: 700px;
+      background-color: #000003;
+      color: #ffffff;
+      line-height: 1.6;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #092d56;
+      border-radius: 4px;
+      background-color: #0e3f73;
+      color: #ffffff;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s, background-color 0.3s;
+    }
+    input:focus, select:focus {
+      border-color: #1a5ca8;
+      outline: none;
+      background-color: #145288;
+      color: #ffffff;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 25px;
+      background-color: #7ebe33;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #659622;
+    }
+    .result {
+      margin-top: 25px;
+      padding: 15px;
+      background-color: #0a0a15;
+      border: 1px solid #22222a;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      font-size: 16px;
+      color: #82b883;
+    }
+    h2 {
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Disability Pay Calculator</h2>
+
+<label>
+  Choose Input Type:
+  <select id="pay_mode" onchange="toggleInput()">
+    <option value="hourly">Hourly Pay</option>
+    <option value="biweekly">Biweekly Pay</option>
+  </select>
+</label>
+
+<label id="hourly_label">
+  Hourly Pay ($):
+  <input type="number" id="hourly_input" value="25" />
+</label>
+
+<label id="biweekly_label" style="display:none;">
+  Biweekly Pay ($):
+  <input type="number" id="biweekly_input" value="2000" />
+</label>
+
+<label>
+  Full Days Paid:
+  <input type="number" id="fdp_days" value="3" />
+</label>
+
+<label>
+  PTO Days Available:
+  <input type="number" id="pto_days" value="4" />
+</label>
+
+<button onclick="calculatePay()">Calculate Pay</button>
+
+<div class="result" id="output"></div>
+
+<script>
+function toggleInput() {
+  const mode = document.getElementById("pay_mode").value;
+  document.getElementById("hourly_label").style.display = mode === "hourly" ? "block" : "none";
+  document.getElementById("biweekly_label").style.display = mode === "biweekly" ? "block" : "none";
+}
+
+function calculatePay() {
+  const DAILY_HOURS = 8;
+  const DAYS_PER_WEEK = 5;
+  const TOTAL_DAYS = 10;
+  const STD_HOURLY_RATE = 12.5;
+  const STD_MAX_WEEKLY_HOURS = 40;
+  const TOTAL_HOURS = TOTAL_DAYS * DAILY_HOURS;
+
+  const mode = document.getElementById("pay_mode").value;
+  let hourlyPay;
+
+  if (mode === "hourly") {
+    hourlyPay = parseFloat(document.getElementById("hourly_input").value);
+  } else {
+    const biweeklyPay = parseFloat(document.getElementById("biweekly_input").value);
+    hourlyPay = biweeklyPay / TOTAL_HOURS;
+  }
+
+  const fdp = hourlyPay * DAILY_HOURS;
+  let fdpDaysAvailable = parseFloat(document.getElementById("fdp_days").value);
+  let ptoDaysAvailable = parseFloat(document.getElementById("pto_days").value);
+
+  const targetPay = fdp * TOTAL_DAYS;
+
+  // FDP split
+  let fdpDaysWeek1 = Math.min(fdpDaysAvailable, DAYS_PER_WEEK);
+  let fdpDaysWeek2 = Math.min(fdpDaysAvailable - fdpDaysWeek1, DAYS_PER_WEEK);
+  const fdpPay = (fdpDaysWeek1 + fdpDaysWeek2) * fdp;
+  const fdpHoursWeek1 = fdpDaysWeek1 * DAILY_HOURS;
+  const fdpHoursWeek2 = fdpDaysWeek2 * DAILY_HOURS;
+
+  // STD allocation per week
+  const stdHoursWeek1 = Math.max(0, Math.min(STD_MAX_WEEKLY_HOURS - fdpHoursWeek1, STD_MAX_WEEKLY_HOURS));
+  const stdHoursWeek2 = Math.max(0, Math.min(STD_MAX_WEEKLY_HOURS - fdpHoursWeek2, STD_MAX_WEEKLY_HOURS));
+  const stdPay = (stdHoursWeek1 + stdHoursWeek2) * STD_HOURLY_RATE;
+
+  // PTO to fill gap
+  const totalPayWithoutPTO = fdpPay + stdPay;
+  const remainingPayNeeded = Math.max(0, targetPay - totalPayWithoutPTO);
+  const neededPtoDays = remainingPayNeeded / fdp;
+  const ptoDaysUsed = Math.min(ptoDaysAvailable, neededPtoDays);
+  const ptoPay = ptoDaysUsed * fdp;
+
+  const totalPay = fdpPay + stdPay + ptoPay;
+
+  // Output the result
+  document.getElementById("output").innerText =
+    `Total Pay: $${totalPay.toFixed(2)}
+Full Days Pay: $${fdpPay.toFixed(2)}
+Short Term Disability Pay: $${stdPay.toFixed(2)}
+Paid Time Off Pay: $${ptoPay.toFixed(2)}
+Paid Time Off Days Used: ${ptoDaysUsed.toFixed(2)}`;
+}
+</script>
+
+</body>
+</html>
